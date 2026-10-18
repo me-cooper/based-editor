@@ -1,6 +1,3 @@
-Speichere das als `README.md` im gemeinsamen Hauptordner:
-
-````markdown
 # Based
 
 Ein einfacher, ordnerbasierter Markdown-Editor als Electron-App für macOS. Mit Live-Vorschau, LaTeX und erweiterbaren Plugins aus JavaScript und CSS.
@@ -46,4 +43,3 @@ npm test
 ```
 
 Das Plugin-Kit ist ein Entwicklungswerkzeug und enthält keinen eigenen Editor. Für die normale App-Nutzung sind seine Tests nicht erforderlich.
-````
