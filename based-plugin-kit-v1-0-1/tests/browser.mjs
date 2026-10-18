@@ -1,0 +1,57 @@
+import http from 'node:http';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+import {fileURLToPath} from 'node:url';
+import {chromium as playwright} from 'playwright';
+const root=path.resolve(fileURLToPath(new URL('..',import.meta.url)));
+const mime={mjs:'text/javascript',js:'text/javascript',css:'text/css',png:'image/png',html:'text/html'};
+const html=`<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'"><link rel="icon" href="data:,"><title>Based Plugin Tests</title><style>body{margin:0;background:#101712;padding:24px;color:#dce1d7;font:15px sans-serif}#preview{width:880px;max-width:100%}</style></head><body><div id="preview"></div><script type="module" src="/tests/harness.mjs"></script></body></html>`;
+const server=http.createServer(async(req,res)=>{try{const url=new URL(req.url,'http://localhost');if(url.pathname==='/'){res.setHeader('Content-Type','text/html');res.end(html);return;}const target=path.resolve(root,'.'+decodeURIComponent(url.pathname));if(!target.startsWith(root+path.sep)){res.writeHead(403);res.end();return;}res.setHeader('Content-Type',mime[path.extname(target).slice(1)]||'application/octet-stream');res.end(await fs.readFile(target));}catch{res.writeHead(404);res.end();}});
+await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+let browser,page;const pageErrors=[],external=[],consoleMessages=[],failedRequests=[];
+try{
+ const executable=process.env.CHROMIUM_EXECUTABLE;
+ let options={headless:true,args:process.env.BASED_SOFTWARE_GL==='1'?['--enable-unsafe-swiftshader','--use-gl=angle','--use-angle=swiftshader']:[]};
+ if(executable)options.executablePath=executable;
+ else if(process.env.BASED_LINUX_CHROMIUM==='1'){const {default:chromium}=await import('@sparticuz/chromium');options={...options,executablePath:await chromium.executablePath(),args:[...chromium.args.filter(arg=>!['--disable-web-security','--allow-running-insecure-content'].includes(arg)),'--enable-unsafe-swiftshader']};}
+ browser=await playwright.launch(options);page=await browser.newPage({viewport:{width:1000,height:1300}});
+ page.on('pageerror',error=>pageErrors.push(error.message));
+ page.on('console',message=>{if(['error','warning'].includes(message.type()))consoleMessages.push(message.text());});
+ page.on('requestfailed',request=>failedRequests.push({url:request.url(),error:request.failure()?.errorText}));
+ const origin=`http://127.0.0.1:${server.address().port}`;
+ await page.route('**/*',route=>{const url=route.request().url();if(url.startsWith(origin)||url.startsWith('blob:')||url.startsWith('data:'))return route.continue();external.push(url);return route.abort();});
+ await page.goto(origin);await page.waitForFunction(()=>window.app?.ready);
+ const chart='```chart\n'+JSON.stringify({title:'Browser-Test',labels:['A','B','C'],values:[12,19,8],type:'bar'})+'\n```';
+ const markdown='![Cube](./cube.3mf)\n\n'+chart;
+ await page.evaluate(text=>window.app.set(text),markdown);
+ await page.waitForFunction(()=>window.app.errors.length>0||(window.app.events.some(e=>e.name==='model:ready')&&window.app.events.some(e=>e.name==='chart:ready')),{},{timeout:30000});
+ const startupErrors=await page.evaluate(()=>window.app.errors);if(startupErrors.length)throw Error('Plugin-Initialisierung: '+startupErrors.join('; '));
+ assert.deepEqual(await page.evaluate(()=>window.app.errors),[]);
+ assert.equal(await page.locator('.viewport canvas').count(),1);assert.equal(await page.locator('.canvas-area canvas').count(),1);
+ const pixels=await page.locator('.viewport canvas').evaluate(canvas=>{const gl=canvas.getContext('webgl2');const out=new Uint8Array(canvas.width*canvas.height*4);gl.readPixels(0,0,canvas.width,canvas.height,gl.RGBA,gl.UNSIGNED_BYTE,out);let distinct=0;for(let i=4;i<out.length;i+=4)if(out[i]!==out[0]||out[i+1]!==out[1]||out[i+2]!==out[2])distinct++;return distinct;});assert.ok(pixels>100,'3MF canvas must contain rendered geometry');
+ await page.locator('.wire').click();assert.equal(await page.locator('.wire').getAttribute('aria-pressed'),'true');
+ await page.locator('.type').selectOption('line');assert.equal(await page.locator('.type').inputValue(),'line');
+ await page.locator('summary').click();await page.locator('textarea.data').fill(JSON.stringify({title:'Changed',labels:['X','Y'],values:[5,9],type:'doughnut'}));await page.locator('.apply').click();assert.equal(await page.locator('.type').inputValue(),'doughnut');
+ await page.locator('textarea.data').fill('bad JSON');await page.locator('.apply').click();assert.match(await page.locator('.chart .status').textContent(),/JSON/);
+ const before=await page.evaluate(()=>window.app.events.filter(e=>e.name==='model:ready').length);
+ await page.evaluate(text=>window.app.set('New text\n\n'+text),markdown);await page.waitForTimeout(100);
+ assert.equal(await page.evaluate(()=>window.app.events.filter(e=>e.name==='model:ready').length),before);assert.equal(await page.locator('.wire').getAttribute('aria-pressed'),'true');
+ await fs.mkdir(path.join(root,'validation'),{recursive:true});await page.screenshot({path:path.join(root,'validation','plugins-browser.png'),fullPage:true});
+ await page.evaluate(()=>window.app.set('![Texture](./textured-cube.3mf)'));
+ await page.waitForFunction(()=>window.app.events.filter(e=>e.name==='model:ready').length>=2);
+ await page.waitForTimeout(250);assert.deepEqual(await page.evaluate(()=>window.app.errors),[]);
+ await page.evaluate(()=>window.app.set(''));await page.waitForTimeout(100);
+ assert.ok(await page.evaluate(()=>window.app.events.some(e=>e.name==='render:disposed'&&e.plugin==='three-mf')));
+ assert.equal(await page.locator('canvas').count(),0);
+ await page.evaluate(()=>window.app.set('![Broken](./invalid.3mf)'));await page.waitForFunction(()=>window.app.errors.length>0);assert.match((await page.evaluate(()=>window.app.errors))[0],/3MF|zip|ZIP|format|EOCD/i);
+ assert.deepEqual(pageErrors,[]);assert.deepEqual(external,[]);
+ const report={browser:await browser.version(),date:new Date().toISOString(),checks:['real 3MF ZIP parsed','non-uniform WebGL pixels','3MF wireframe UI','Chart.js canvas','chart type change','chart data UI + validation','viewer reused while typing','textured 3MF fixture','cleanup on removal','invalid file contained','no external network requests'],webgl:true,errors:pageErrors};
+ await fs.writeFile(path.join(root,'validation','browser-results.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));
+}catch(error){
+ const state=page&&!page.isClosed()?await page.evaluate(()=>({errors:window.app?.errors||[],events:(window.app?.events||[]).map(e=>({name:e.name,plugin:e.plugin,message:e.message})),status:window.app?.status?.()})).catch(()=>null):null;
+ const diagnostic={message:error.message,pageErrors,consoleMessages,failedRequests,state};
+ await fs.mkdir(path.join(root,'validation'),{recursive:true});await fs.writeFile(path.join(root,'validation','browser-failure.json'),JSON.stringify(diagnostic,null,2));
+ if(page&&!page.isClosed())await page.screenshot({path:path.join(root,'validation','browser-failure.png'),fullPage:true}).catch(()=>{});
+ console.error('Browser-Test fehlgeschlagen. Diagnose: validation/browser-failure.json\n'+JSON.stringify(diagnostic,null,2));throw error;
+}finally{await browser?.close();await new Promise(resolve=>server.close(resolve));}

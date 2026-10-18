@@ -1,0 +1,17 @@
+/* Only this formula. App, Markdown and other plugins stay untouched. */
+:host {
+  --formula-color: #dce1d7;
+  --formula-size: 1.12em;
+  --formula-background: transparent;
+}
+.katex {
+  color: var(--formula-color);
+  font-size: var(--formula-size);
+}
+.katex-display {
+  background: var(--formula-background);
+  margin: 1em 0;
+  padding: .65em .25em;
+  overflow: auto hidden;
+  text-align: center;
+}

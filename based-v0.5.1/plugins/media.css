@@ -1,0 +1,34 @@
+:host {
+  --media-radius: 6px;
+  --attachment-background: #242e26;
+  --attachment-border: #465444;
+  --attachment-color: #dce1d7;
+  --attachment-accent: #bad7a8;
+}
+img,video {
+  display:inline-block;
+  max-width:100%;
+  height:auto;
+  border-radius:var(--media-radius);
+  vertical-align:middle;
+}
+audio { display:inline-block; max-width:100%; vertical-align:middle; }
+.attachment {
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  max-width:100%;
+  padding:10px 14px;
+  margin:4px 0;
+  border:1px solid var(--attachment-border);
+  border-radius:var(--media-radius);
+  background:var(--attachment-background);
+  color:var(--attachment-color);
+  text-decoration:none;
+  vertical-align:middle;
+}
+.attachment:hover { border-color:var(--attachment-accent); }
+.attachment:focus-visible { outline:2px solid var(--attachment-accent); outline-offset:3px; }
+.attachment-type { flex-shrink:0; font:600 10px/1.4 ui-monospace,monospace; color:var(--attachment-accent); }
+.attachment-name { min-width:0; overflow-wrap:anywhere; }
+.attachment-action { flex-shrink:0; font-size:11px; color:var(--attachment-accent); }

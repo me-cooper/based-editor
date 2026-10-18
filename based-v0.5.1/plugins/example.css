@@ -1,0 +1,4 @@
+/* This cannot change strong, p or div in other plugins or the app. */
+.note { border-left:3px solid #bad7a8; padding:12px 18px; background:#242e22; }
+strong { font-size:1em; font-weight:700; }
+p { margin:.5em 0 0; white-space:pre-wrap; }

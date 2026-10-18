@@ -1,0 +1,23 @@
+{
+  "api": "Based 0.5",
+  "contents": "Produktions-Renderer/Preview/Events plus Medienrouting und DOMPurify; kein nativer Electron-Host",
+  "sources": [
+    {
+      "file": "src/renderer.mjs",
+      "sha256": "67b8681362b34c7b4d5d331b634c233b7de6cf5222846e036c8b9d970e4f9a6a"
+    },
+    {
+      "file": "src/preview.mjs",
+      "sha256": "fdaa2104ae2f32348e9cade71b86611375dece10f9c3f5a626a808386ad5244e"
+    },
+    {
+      "file": "src/events.mjs",
+      "sha256": "0c398248cbaafec42513c4a15a76fb07707c72771d5197aa93343e3f10a82378"
+    },
+    {
+      "file": "plugins/media.mjs",
+      "sha256": "732a69a07bdf8559824cf9b34edd2554e0b64ebb119976cc09130b4e27bec612"
+    }
+  ],
+  "bundleSha256": "19e64aa075a126b3260259180993fa142c4fc3ddaea488fb464ca0a41a41ef02"
+}

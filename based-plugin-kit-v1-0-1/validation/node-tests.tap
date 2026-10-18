@@ -1,0 +1,83 @@
+TAP version 13
+# Subtest: real ThreeMFLoader parses supplied ZIP model to geometry
+ok 1 - real ThreeMFLoader parses supplied ZIP model to geometry
+  ---
+  duration_ms: 55.511342
+  type: 'test'
+  ...
+# Subtest: invalid 3MF is rejected by actual Three.js loader
+ok 2 - invalid 3MF is rejected by actual Three.js loader
+  ---
+  duration_ms: 4.088932
+  type: 'test'
+  ...
+# Subtest: Chart.js draws pixels and UI changes type and data on native Canvas
+ok 3 - Chart.js draws pixels and UI changes type and data on native Canvas
+  ---
+  duration_ms: 188.04898
+  type: 'test'
+  ...
+# Subtest: embedded texture fixture contains a decodable PNG
+ok 4 - embedded texture fixture contains a decodable PNG
+  ---
+  duration_ms: 23.272118
+  type: 'test'
+  ...
+# Subtest: actual DOMPurify preserves file and chart mount data in a browser DOM
+ok 5 - actual DOMPurify preserves file and chart mount data in a browser DOM
+  ---
+  duration_ms: 339.499958
+  type: 'test'
+  ...
+# Subtest: chart schema validates content and rejects invalid arrays
+ok 6 - chart schema validates content and rejects invalid arrays
+  ---
+  duration_ms: 2.912889
+  type: 'test'
+  ...
+# Subtest: actions list exposes three independent chart insertions
+ok 7 - actions list exposes three independent chart insertions
+  ---
+  duration_ms: 0.661273
+  type: 'test'
+  ...
+# Subtest: 3MF plugin routes file and escapes title
+ok 8 - 3MF plugin routes file and escapes title
+  ---
+  duration_ms: 1.818789
+  type: 'test'
+  ...
+# Subtest: 3D cleanup disposes shared resources once
+ok 9 - 3D cleanup disposes shared resources once
+  ---
+  duration_ms: 0.968457
+  type: 'test'
+  ...
+# Subtest: malformed initial chart still produces an editable UI container
+ok 10 - malformed initial chart still produces an editable UI container
+  ---
+  duration_ms: 0.495802
+  type: 'test'
+  ...
+# Subtest: minimal host patch adds only blob image permission and is idempotent
+ok 11 - minimal host patch adds only blob image permission and is idempotent
+  ---
+  duration_ms: 554.52082
+  type: 'test'
+  ...
+# npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+# Subtest: npm start launcher delegates to neighboring Electron project
+ok 12 - npm start launcher delegates to neighboring Electron project
+  ---
+  duration_ms: 1109.048268
+  type: 'test'
+  ...
+1..12
+# tests 12
+# suites 0
+# pass 12
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2110.564827

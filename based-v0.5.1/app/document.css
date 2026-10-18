@@ -1,0 +1,18 @@
+/* Document typography. Isolated from the Electron shell and all plugin internals. */
+:host { display:block; color:#dce1d7; font:15px/1.8 -apple-system,BlinkMacSystemFont,sans-serif; overflow-wrap:anywhere; }
+*,*::before,*::after { box-sizing:border-box; }
+h1 { font-size:32px; line-height:1.2; letter-spacing:-1px; margin: .7em 0; }
+h2 { font-size:23px; line-height:1.35; }
+h3 { font-size:18px; }
+strong,b { font-size:inherit; font-weight:700; letter-spacing:normal; }
+p { margin:.8em 0; }
+code { background:#2a312b; padding:3px 5px; border-radius:4px; font: .9em ui-monospace,SFMono-Regular,monospace; }
+pre { padding:12px; background:#222823; overflow:auto; }
+pre code { background:none; padding:0; }
+blockquote { border-left:2px solid #b5d99b; padding-left:16px; margin-left:0; color:#9eae99; }
+a { color:#b5d99b; }
+table { border-collapse:collapse; }
+td,th { border:1px solid #465444; padding:6px; }
+img,video { max-width:100%; }
+
+input[type="checkbox"] { accent-color:#bad7a8; vertical-align:middle; }

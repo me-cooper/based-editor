@@ -1,0 +1,14 @@
+:host { display:block; }
+.chart { margin:12px 0; padding:16px; border:1px solid #465444; border-radius:9px; background:#19221c; color:#dce1d7; }
+header { display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; }
+strong { font-size:16px; }
+label,summary { font-size:12px; }
+select,button,textarea { color:inherit; background:#263329; border:1px solid #52624e; border-radius:5px; font:inherit; padding:7px; }
+select { font-size:12px; }
+.canvas-area { position:relative; height:300px; width:100%; margin:15px 0; }
+canvas { display:block; }
+summary { cursor:pointer; }
+textarea { box-sizing:border-box; display:block; width:100%; min-height:180px; margin:10px 0; font:12px/1.5 ui-monospace,monospace; resize:vertical; }
+button { cursor:pointer; margin-right:6px; font-size:12px; }
+button:focus-visible,select:focus-visible,textarea:focus-visible { outline:2px solid #bad7a8; outline-offset:3px; }
+.status { font-size:11px; color:#abc2a0; }

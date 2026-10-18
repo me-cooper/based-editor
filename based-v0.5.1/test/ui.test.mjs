@@ -1,0 +1,33 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import fs from 'node:fs/promises';
+import {toolbarActions,insertion} from '../src/editor.mjs';
+import {createRenderer} from '../src/index.mjs';
+class Element{
+ constructor(){this.value='';this.textContent='';this.children=[];this.listeners={};this.selectionStart=0;this.selectionEnd=0;}
+ append(...children){this.children.push(...children);}replaceChildren(){this.children=[];}focus(){this.focused=true;}
+ showModal(){this.open=true;}close(){this.open=false;}addEventListener(name,fn){this.listeners[name]=fn;}click(){return this.onclick?.();}
+ setRangeText(text,a,b){this.value=this.value.slice(0,a)+text+this.value.slice(b);this.selectionStart=this.selectionEnd=a+text.length;}
+}
+async function setup(){
+ const elements=new Map(),calls=[],control={saveResult:null,choice:'cancel',mediaCalls:[],mkdirCalls:[]},events={};
+ const element=id=>{if(!elements.has(id))elements.set(id,new Element());return elements.get(id);};
+ const files={base:async()=>'',mkdir:async(parent,name)=>{control.mkdirCalls.push({parent,name});return {path:'Projects/2026',tree:[]};},importMedia:async(p,kind,sources)=>{control.mediaCalls.push({p,kind,sources});return [{name:'photo.png',url:'./photo.png',kind:'image'}];},styles:async()=>({}),state:async()=>{},decide:async()=>control.choice,saveas:async(text,name,folder)=>{calls.push({text,name,folder});return control.saveResult;},save:async(p,text)=>{calls.push({p,text});return {path:p};},open:async()=>null,onSaveBeforeClose:fn=>events.close=fn};
+ const source=(await fs.readFile(new URL('../app/ui.mjs',import.meta.url),'utf8')).replace(/^import .*;\n/gm,'');
+ vm.runInNewContext(source,{createRenderer,toolbarActions,insertion,documentCSS:'strong {font-size:inherit}',mountPreview:(host,html,options)=>{host.innerHTML=html;host.previewOptions=options;},DOMPurify:{sanitize:t=>t},document:{getElementById:element,createElement:()=>new Element()},window:{addEventListener:(name,fn)=>events[name]=fn},files,Date,console});
+ const input=text=>{element('editor').value=text;element('editor').listeners.input();};
+ return {$:element,input,calls,control,events};
+}
+test('starts blank and focused; new draft needs neither name nor folder',async()=>{const h=await setup();assert.equal(h.$('editor').value,'');assert.equal(h.$('editor').focused,true);await h.$('new').click();assert.equal(h.calls.length,0);assert.equal(h.$('filename').textContent,'Unbenannt.md');});
+test('write first, cancel save, retry and save same text',async()=>{const h=await setup();h.input('# Meine Notiz\nText');await h.$('save').click();assert.equal(h.$('editor').value,'# Meine Notiz\nText');assert.match(h.$('filename').textContent,/•/);assert.equal(h.calls[0].name,'Meine Notiz.md');h.control.saveResult={path:'Meine Notiz.md',name:'Notes',tree:[]};await h.$('save').click();assert.equal(h.$('filename').textContent,'Meine Notiz.md');assert.equal(h.$('folder').textContent,'Notes');assert.equal(h.$('editor').value,'# Meine Notiz\nText');});
+test('new draft protects changes and canceling save prevents navigation',async()=>{const h=await setup();h.input('keep');await h.$('new').click();assert.equal(h.$('editor').value,'keep');h.control.choice='save';await h.$('new').click();assert.equal(h.$('editor').value,'keep');h.control.choice='discard';await h.$('new').click();assert.equal(h.$('editor').value,'');});
+test('calendar inserts editable source into the draft',async()=>{const h=await setup();await h.$('plugin-actions').children.find(b=>b.id==='action-calendar-add').click();assert.match(h.$('editor').value,/```calendar \d{4}-\d{2}/);assert.match(h.$('preview').innerHTML,/<table/);assert.match(h.$('filename').textContent,/•/);});
+
+test('plugin actions are discovered and formula wraps selection',async()=>{const h=await setup();const labels=h.$('plugin-actions').children.map(b=>b.textContent);assert.ok(labels.includes('Formel einfügen'));assert.ok(labels.includes('Kalender hinzufügen'));h.input('x^2');h.$('editor').selectionStart=0;h.$('editor').selectionEnd=3;await h.$('plugin-actions').children.find(b=>b.id==='action-latex-formula').click();assert.match(h.$('editor').value,/\$\$\nx\^2\n\$\$/);assert.match(h.$('preview').innerHTML,/data-based-plugin="latex"/);});
+test('design editor targets only selected plugin',async()=>{const h=await setup();h.input('$x$');h.$('design-plugin').value='latex';h.$('design-css').value='.katex {color: red}';await h.$('design-apply').click();const options=h.$('preview').previewOptions;assert.equal(options.plugins.find(p=>p.id==='latex').design.css,'.katex {color: red}');assert.notEqual(options.plugins.find(p=>p.id==='calendar').design.css,'.katex {color: red}');assert.equal(options.documentCSS,'strong {font-size:inherit}');});
+
+test('media insertion cancels cleanly for drafts and then inserts relative links after saving',async()=>{const h=await setup();h.input('draft');const button=h.$('plugin-actions').children.find(b=>b.id==='action-media-attach');await button.click();assert.equal(h.control.mediaCalls.length,0);assert.equal(h.$('editor').value,'draft');h.control.saveResult={path:'Notes/Note.md',base:'based-media://token/Notes/'};await button.click();assert.equal(h.control.mediaCalls[0].p,'Notes/Note.md');assert.match(h.$('editor').value,/!\[photo.png\]\(\.\/photo.png\)/);assert.equal(h.$('preview').previewOptions.baseURL,'based-media://token/Notes/');});
+test('new folder dialog creates a nested target for the next draft save',async()=>{const h=await setup();await h.$('new-folder').click();assert.equal(h.$('folder-dialog').open,true);h.$('folder-name').value='Projects/2026';await h.$('folder-form').onsubmit({preventDefault(){}});assert.equal(h.control.mkdirCalls[0].name,'Projects/2026');assert.equal(h.$('folder-dialog').open,false);h.input('Note');await h.$('save').click();assert.equal(h.calls[0].folder,'Projects/2026');});
+test('Markdown toolbar applies bold to selection',async()=>{const h=await setup();h.input('Hello world');h.$('editor').selectionStart=6;h.$('editor').selectionEnd=11;await h.$('markdown-toolbar').children.find(b=>b.id==='format-bold').click();assert.equal(h.$('editor').value,'Hello **world**');});
+test('fixed attachment button saves draft and opens unrestricted attachment flow',async()=>{const h=await setup();h.input('My model');h.control.saveResult={path:'Note.md',base:'based-media://token/'};await h.$('attach-files').click();assert.equal(h.control.mediaCalls.length,1);assert.equal(h.control.mediaCalls[0].kind,'file');assert.equal(h.control.mediaCalls[0].p,'Note.md');assert.match(h.$('editor').value,/!\[photo.png\]/);assert.ok(h.events.drop);assert.ok(h.events.dragover);});
